@@ -1,5 +1,7 @@
 import Realm from "realm";
 import ChecklistSchema, { FarmerSchema, FromToSchema, LocationSchema } from "../models/ChecklistModel";
+import NetInfo from '@react-native-community/netinfo';
+import { syncChecklists } from './ApiService';
 
 const realm = new Realm({ schema: [ChecklistSchema, FarmerSchema, FromToSchema, LocationSchema] });
 
@@ -19,7 +21,7 @@ export const getChecklistById = (id) => {
 
 const generateNumericId = () => {
   const timestamp = Date.now().toString(); 
-  const randomNum = Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
+  const randomNum = Math.floor(Math.random() * 1000000000).toString().padStart(9, '0'); // 9 dígitos aleatórios
   return timestamp + randomNum;
 };
 
@@ -74,7 +76,27 @@ export const deleteChecklist = (id) => {
   });
 };
 
+// Adicionando o setupSyncListener para ouvir as alterações
+export const setupSyncListener = () => {
+  NetInfo.addEventListener((state) => {
+    if (state.isConnected) {
+      syncChecklists().catch((error) => console.error("Erro ao sincronizar checklists:", error));
+    }
+  });
+
+  realm.addListener("change", () => {
+    syncChecklists().catch((error) => console.error("Erro ao sincronizar checklists:", error));
+  });
+};
+
 export default realm;
+
+
+
+
+
+
+
 
 
 

@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, Alert, StyleSheet, ScrollView } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { getChecklistById as getChecklistFromRealm, deleteChecklist, markSynced, updateChecklist } from '../../services/RealmService';
-import { syncSingleChecklist, getChecklistById as getChecklistFromAPI, updateChecklist as updateChecklistAPI } from '../../services/ApiService';
+import { getChecklistById as getChecklistFromRealm, deleteChecklist, updateChecklist } from '../../services/RealmService';
+import { deleteChecklistApi , getChecklistById as getChecklistFromAPI, updateChecklist as updateChecklistAPI } from '../../services/ApiService';
 
 const ChecklistDetailScreen = () => {
   const route = useRoute();
@@ -36,7 +36,12 @@ const ChecklistDetailScreen = () => {
     }
   };
 
-  const handleEdit = () => {
+  const handleEdit = async () => {
+    if (checklist.unsynced) {
+      updateChecklist(checklist._id, checklist);
+    } else {
+      await updateChecklistAPI(checklist._id, checklist);
+    }
     navigation.navigate('ChecklistFormScreen', { checklistId });
   };
 
@@ -53,20 +58,9 @@ const ChecklistDetailScreen = () => {
   };
 
   const deleteChecklistAction = () => {
-    deleteChecklist(checklistId);
+    deleteChecklistApi(checklistId);
     Alert.alert('Sucesso', 'Checklist excluído com sucesso!');
     navigation.goBack();
-  };
-
-  const handleSync = async () => {
-    try {
-      await syncSingleChecklist(checklist); 
-      Alert.alert('Sucesso', 'Checklist sincronizado com sucesso!');
-      fetchChecklistData(checklistId); 
-    } catch (error) {
-      Alert.alert('Erro', 'Não foi possível sincronizar o checklist.');
-      console.error('Erro ao sincronizar checklist:', error);
-    }
   };
 
   if (!checklist) {
@@ -102,13 +96,6 @@ const ChecklistDetailScreen = () => {
         <DetailItem label="Criado em" value={new Date(checklist.created_at).toLocaleDateString()} />
         <DetailItem label="Atualizado em" value={new Date(checklist.updated_at).toLocaleDateString()} />
       </View>
-
-      {!checklist.synced && (
-        <TouchableOpacity style={styles.syncButton} onPress={handleSync}>
-          <Ionicons name="cloud-upload-outline" size={24} color="#fff" />
-          <Text style={styles.syncButtonText}>Sincronizar Checklist</Text>
-        </TouchableOpacity>
-      )}
     </ScrollView>
   );
 };
@@ -171,29 +158,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#555',
   },
-  syncButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#4CAF50',
-    padding: 16,
-    borderRadius: 8,
-    marginTop: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  syncButtonText: {
-    marginLeft: 8,
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#fff',
-  },
 });
 
 export default ChecklistDetailScreen;
+
 
 
 

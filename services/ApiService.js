@@ -48,6 +48,7 @@ export const updateChecklist = async (id, updatedData) => {
 export const deleteChecklistApi = async (id) => {
   try {
     const response = await axios.delete(`${API_URL}/${id}`);
+    console.log(response.data);
     return response.data;
   } catch (error) {
     console.error(`Erro ao deletar o checklist com ID ${id}:`, error);
@@ -91,16 +92,22 @@ export const syncChecklists = async () => {
     const response = await axios.post(API_URL, { checklists: checklistsData });
 
     if (response.status === 200) {
-      unsyncedChecklists.forEach((checklist) => {
-        markSynced(checklist._id);
-        deleteChecklist(checklist._id); // Remove do Realm após sincronizar
+      unsyncedChecklists.forEach((checklist, index) => {
+        const apiResponseId = response.data.idCreate[index];
+        console.log(`Checklist ID na API: ${apiResponseId}`);
+        if (apiResponseId) {
+          markSynced(checklist._id);
+          deleteChecklist(checklist._id); // Remove do Realm após sincronizar
+        } else {
+          console.error(`Erro ao sincronizar checklist ${checklist._id}: ID retornado pela API é inválido.`);
+        }
       });
       console.log('Checklists sincronizados com sucesso.');
     } else {
       console.error('Erro ao sincronizar checklists:', response);
     }
   } catch (error) {
-    console.error('Erro ao sincronizar checklists:', error);
+    console.error('Erro ao sincronizar checklists:', error.response ? error.response.data : error.message);
     throw error;
   }
 };
@@ -143,17 +150,24 @@ export const syncSingleChecklist = async (checklist) => {
     const response = await axios.post(API_URL, payload);
 
     if (response.status === 200) {
-      markSynced(checklist._id);
-      deleteChecklist(checklist._id); // Remove do Realm após sincronizar
-      console.log(`Checklist ${checklist._id} sincronizado com sucesso.`);
+      const apiResponseId = response.data.idCreate[0];
+      if (apiResponseId) {
+        markSynced(checklist._id);
+        deleteChecklist(checklist._id); // Remove do Realm após sincronizar
+        console.log(`Checklist ${checklist._id} sincronizado com sucesso.`);
+      } else {
+        console.error(`Erro ao sincronizar checklist ${checklist._id}: ID retornado pela API é inválido.`);
+      }
     } else {
       console.error('Erro ao sincronizar checklist:', response);
     }
   } catch (error) {
-    console.error('Erro ao sincronizar checklist:', error);
+    console.error('Erro ao sincronizar checklist:', error.response ? error.response.data : error.message);
     throw error;
   }
 };
+
+
 
 
 

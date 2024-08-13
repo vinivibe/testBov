@@ -30,7 +30,7 @@ class ChecklistSchema extends Realm.Object {}
 ChecklistSchema.schema = {
   name: "Checklist",
   properties: {
-    _id: "string", // Mantido como string
+    _id: "string",
     type: "string",
     amount_of_milk_produced: "int",
     number_of_cows_head: "int",
@@ -48,5 +48,6 @@ ChecklistSchema.schema = {
 
 export default ChecklistSchema;
 export { FarmerSchema, FromToSchema, LocationSchema };
+
 
 
