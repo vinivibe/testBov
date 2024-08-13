@@ -3,27 +3,20 @@ import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity, Alert } from
 import { Ionicons } from '@expo/vector-icons';
 import { fetchChecklistsFromAPI, syncChecklists } from '../../services/ApiService';
 import { useRouter } from 'expo-router';
+import { getChecklists } from '../../services/RealmService';
 
 export default function HomeScreen() {
   const router = useRouter();
   const [greeting, setGreeting] = useState('');
   const [checklists, setChecklists] = useState([]);
+  const [unsyncedChecklists, setUnsyncedChecklists] = useState([]);
   const [totalMilk, setTotalMilk] = useState(0);
   const [totalCows, setTotalCows] = useState(0);
   const [supervisedCount, setSupervisedCount] = useState(0);
 
   useEffect(() => {
-    // Definir saudação com base na hora do dia
     const hour = new Date().getHours();
-    if (hour < 12) {
-      setGreeting('Bom dia');
-    } else if (hour < 18) {
-      setGreeting('Boa tarde');
-    } else {
-      setGreeting('Boa noite');
-    }
-
-    // Carregar checklists da API
+    setGreeting(hour < 12 ? 'Bom dia' : hour < 18 ? 'Boa tarde' : 'Boa noite');
     loadChecklists();
   }, []);
 
@@ -32,6 +25,10 @@ export default function HomeScreen() {
       const data = await fetchChecklistsFromAPI();
       setChecklists(data);
       calculateSummaries(data);
+
+      // Carregar checklists não sincronizados do Realm
+      const localChecklists = getChecklists().filtered('unsynced == true');
+      setUnsyncedChecklists(localChecklists);
     } catch (error) {
       Alert.alert('Erro', 'Não foi possível carregar os checklists.');
       console.error('Erro ao carregar checklists:', error);
@@ -44,13 +41,13 @@ export default function HomeScreen() {
     let supervised = 0;
 
     data.forEach(item => {
-      milk += item.amount_of_milk_produced;
-      cows += item.number_of_cows_head;
+      milk += item.amount_of_milk_produced || 0;
+      cows += item.number_of_cows_head || 0;
       if (item.had_supervision) supervised += 1;
     });
 
-    setTotalMilk(Math.round(milk));  
-    setTotalCows(Math.round(cows));  
+    setTotalMilk(milk.toFixed(2));  // Corrigido para exibir corretamente como número
+    setTotalCows(cows);
     setSupervisedCount(supervised);
   };
 
@@ -62,6 +59,36 @@ export default function HomeScreen() {
       Alert.alert('Erro', 'Não foi possível sincronizar os checklists.');
       console.error('Erro ao sincronizar checklists:', error);
     }
+  };
+
+  const renderUnsyncedList = () => {
+    if (unsyncedChecklists.length === 0) {
+      return (
+        <View style={styles.emptyStateContainer}>
+          <Image source={require('@/assets/images/empty.png')} style={styles.emptyStateImage} />
+          <Text style={styles.emptyStateText}>Todos os checklists estão sincronizados.</Text>
+        </View>
+      );
+    }
+
+    return (
+      <FlatList
+        data={unsyncedChecklists}
+        keyExtractor={(item) => item._id.toString()}
+        renderItem={({ item }) => (
+          <TouchableOpacity
+            style={styles.unsyncedCard}
+            onPress={() => router.push(`/ChecklistDetailScreen/${item._id}`)}
+          >
+            <Ionicons name="cloud-offline-outline" size={24} color="#FF5722" />
+            <View style={styles.unsyncedCardContent}>
+              <Text style={styles.unsyncedCardTitle}>{item.farmer.name}</Text>
+              <Text style={styles.unsyncedCardSubtitle}>{item.farmer.city}</Text>
+            </View>
+          </TouchableOpacity>
+        )}
+      />
+    );
   };
 
   return (
@@ -100,24 +127,8 @@ export default function HomeScreen() {
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Checklists Recentes</Text>
-        <FlatList
-          data={checklists.slice(0, 5)}  // Limita aos 5 checklists mais recentes
-          keyExtractor={(item) => item._id.toString()}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={styles.card}
-              onPress={() => router.push(`/ChecklistDetailScreen/${item._id}`)}
-            >
-              <Image source={require('@/assets/images/farm-placeholder.png')} style={styles.cardImage} />
-              <View style={styles.cardContent}>
-                <Text style={styles.cardTitle}>{item.farmer.name}</Text>
-                <Text style={styles.cardSubtitle}>{item.farmer.city}</Text>
-                <Text style={styles.cardDate}>Criado em: {new Date(item.created_at).toLocaleDateString()}</Text>
-              </View>
-            </TouchableOpacity>
-          )}
-        />
+        <Text style={styles.sectionTitle}>Checklists Não Sincronizados</Text>
+        {renderUnsyncedList()}
       </View>
     </View>
   );
@@ -172,7 +183,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,
-    flexBasis: '45%',  // Ajusta a largura dos cartões para uma melhor distribuição
+    flexBasis: '45%', 
   },
   overviewNumber: {
     fontSize: 24,
@@ -194,42 +205,44 @@ const styles = StyleSheet.create({
     color: '#333',
     marginBottom: 12,
   },
-  card: {
-    backgroundColor: '#FFFFFF',
+  unsyncedCard: {
+    backgroundColor: '#FFF3E0',
     borderRadius: 8,
-    overflow: 'hidden',
+    padding: 16,
     marginBottom: 16,
-    width: '100%',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-  cardImage: {
-    width: '100%',
-    height: 120,
-    resizeMode: 'cover',
+  unsyncedCardContent: {
+    marginLeft: 12,
   },
-  cardContent: {
-    padding: 12,
-  },
-  cardTitle: {
+  unsyncedCardTitle: {
     fontSize: 16,
     fontWeight: '600',
     color: '#333',
-    marginBottom: 4,
   },
-  cardSubtitle: {
+  unsyncedCardSubtitle: {
     fontSize: 14,
     color: '#777',
-    marginBottom: 4,
   },
-  cardDate: {
-    fontSize: 12,
-    color: '#AAA',
+  emptyStateContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 50,
+  },
+  emptyStateImage: {
+    width: 150,
+    height: 150,
+    marginBottom: 20,
+  },
+  emptyStateText: {
+    fontSize: 16,
+    color: '#777',
   },
 });
+
+export default HomeScreen;
+
 
 
 

@@ -97,7 +97,7 @@ export const syncChecklists = async () => {
         console.log(`Checklist ID na API: ${apiResponseId}`);
         if (apiResponseId) {
           markSynced(checklist._id);
-          deleteChecklist(checklist._id); // Remove do Realm após sincronizar
+          deleteChecklist(checklist._id); 
         } else {
           console.error(`Erro ao sincronizar checklist ${checklist._id}: ID retornado pela API é inválido.`);
         }
@@ -153,7 +153,7 @@ export const syncSingleChecklist = async (checklist) => {
       const apiResponseId = response.data.idCreate[0];
       if (apiResponseId) {
         markSynced(checklist._id);
-        deleteChecklist(checklist._id); // Remove do Realm após sincronizar
+        deleteChecklist(checklist._id); 
         console.log(`Checklist ${checklist._id} sincronizado com sucesso.`);
       } else {
         console.error(`Erro ao sincronizar checklist ${checklist._id}: ID retornado pela API é inválido.`);

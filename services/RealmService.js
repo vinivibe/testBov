@@ -76,7 +76,6 @@ export const deleteChecklist = (id) => {
   });
 };
 
-// Adicionando o setupSyncListener para ouvir as alterações
 export const setupSyncListener = () => {
   NetInfo.addEventListener((state) => {
     if (state.isConnected) {

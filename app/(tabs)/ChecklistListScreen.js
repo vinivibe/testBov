@@ -14,12 +14,12 @@ const ChecklistListScreen = () => {
   // Função para carregar os checklists
   const loadChecklists = useCallback(async () => {
     try {
-      setLoading(true); // Define como carregando
-      await fetchChecklists(); // Busca os checklists da API e do Realm
+      setLoading(true); 
+      await fetchChecklists(); 
     } catch (error) {
       console.error('Erro ao carregar checklists:', error);
     } finally {
-      setLoading(false); // Garante que o carregamento é finalizado
+      setLoading(false); 
     }
   }, []);
 
